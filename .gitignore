@@ -1,0 +1,17 @@
+# Fjalëkalimi REAL -- KURRË mos e commito!
+.streamlit/secrets.toml
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Skedarë të përkohshëm/output lokal (jo pjesë e kodit)
+reports/*.pdf
+output/*.csv
+*.log
+
+# OS
+.DS_Store
