@@ -104,7 +104,70 @@ hapja e parë merr disa sekonda (ose ~1 min nëse `data/patients_full_predicted.
 nuk ekziston ende dhe duhet rillogaritur), më pas çdo ndërveprim është i
 shpejtë.
 
-## 5. Si të përdoret (CLI)
+## 5. 🌐 Publikimi ONLINE (falas, me Streamlit Community Cloud)
+
+Dashboard-i është i mbrojtur me **fjalëkalim** (shih `dashboard/auth.py`) sepse
+përmban të dhëna reale shëndetësore. Ndiq hapat më poshtë me kujdes.
+
+### Hapi 1 — Krijo repo në GitHub
+
+1. Hap [github.com](https://github.com) → krijo llogari (nëse s'ke) → **New repository**
+2. Emërto p.sh. `biochem-ml-dashboard`. Mund ta bësh **Private** (Streamlit
+   Community Cloud falas lejon 1 repo privat të publikuar) ose **Public** —
+   fjalëkalimi mbron aplikacionin gjithsesi, pavarësisht dukshmërisë së kodit.
+3. MOS shto README/gitignore automatik (i kemi tashmë).
+
+### Hapi 2 — Ngarko kodin (nga kompjuteri yt, pas unzip)
+
+```bash
+cd biochem_ml
+git remote add origin https://github.com/USERNAME/biochem-ml-dashboard.git
+git push -u origin main
+```
+
+*(Zip-i që të dhashë ka tashmë `git init` + commit të parë të bërë —
+duhet vetëm `remote add` + `push`.)*
+
+### Hapi 3 — Publiko në Streamlit Community Cloud (FALAS)
+
+1. Shko te [share.streamlit.io](https://share.streamlit.io) → **Sign in with GitHub**
+2. **New app** → zgjidh repo-n `biochem-ml-dashboard`, branch `main`
+3. **Main file path**: `dashboard/app.py`   ⚠️ (JO `app.py` — është brenda `dashboard/`)
+4. **PARA se të klikosh Deploy** (ose menjëherë pas), shko te **Advanced
+   settings → Secrets** dhe shto:
+   ```toml
+   app_password = "zgjidh_nje_fjalekalim_te_forte"
+   ```
+5. Kliko **Deploy**. Prisni 2-5 minuta (instalon paketat nga `requirements.txt`).
+6. Merr linkun tip `https://biochem-ml-dashboard-xxxx.streamlit.app` — ndaje
+   VETËM me njerëz të autorizuar (bashkë me fjalëkalimin, veçmas, p.sh. me telefon).
+
+### ⚠️ Shënime të rëndësishme
+
+- **Linku është teknikisht i arritshëm nga kushdo** që e ka (edhe nëse repo është
+  privat) — prandaj fjalëkalimi është mbrojtja reale, jo dukshmëria e repo-s.
+- Free tier ka **1GB RAM** — modelet tona (~38MB) e kalojnë lehtë këtë limit,
+  por nëse shton shumë më shumë të dhëna, mund të duhet upgrade.
+- Aplikacionet falas **"flenë" pas ~7 ditësh pa vizitorë** — hapet automatikisht
+  (me pak vonesë) në vizitën e parë pas kësaj.
+- Për të ndryshuar fjalëkalimin më vonë: Streamlit Cloud → app-i yt → **Settings
+  → Secrets** → ndrysho `app_password` → **Save** (rindizet automatikisht).
+- Dataseti i etiketuar (`data/patients_full_predicted.parquet`) dhe modelet
+  janë PËRFSHIRË në repo (~20MB), kështu online NUK ka nevojë për CSV-në
+  origjinale as rillogaritje — hapet menjëherë me modelet e gatshme.
+
+### Testim lokal para publikimit
+
+```bash
+# Krijo secrets.toml LOKAL (KURRË mos e commito!)
+cp .streamlit/secrets.toml.example .streamlit/secrets.toml
+# hape dhe vendos fjalëkalimin tënd brenda
+
+# NISE NGA RRËNJA E PROJEKTIT (jo nga brenda dashboard/):
+streamlit run dashboard/app.py
+```
+
+## 6. Si të përdoret (CLI)
 
 ```bash
 pip install -r requirements.txt
@@ -125,7 +188,7 @@ python main.py predict --sample 10
 python main.py stats
 ```
 
-## 6. Përgjigje e drejtpërdrejtë pyetjes: "një nga një apo gjithë dataseti?"
+## 7. Përgjigje e drejtpërdrejtë pyetjes: "një nga një apo gjithë dataseti?"
 
 - **Trajnimi (`train`)**: bëhet MBI GJITHË datasetin, një herë (ose kur
   dataseti përditësohet me pacientë të rinj).
@@ -134,7 +197,7 @@ python main.py stats
 - **Statistikat (`stats`)**: bëhet MBI GJITHË popullsinë njëherësh (vektorizuar,
   disa sekonda për 30,000 pacientë) sepse rezultati është 1 tabelë e vetme.
 
-## 7. Kufizime & çka duhet përmirësuar më vonë
+## 8. Kufizime & çka duhet përmirësuar më vonë
 
 - Zëvendëso demografinë/antropometrinë sintetike me reale (shih §2)
 - Nëse ke presion gjaku REAL, hiqe gjenerimin sintetik në `synthetic_demo.py`
@@ -148,7 +211,7 @@ python main.py stats
   qëllimshme (modeli "mëson" pragjet klinike + vlerëson mirë edhe kur mungon
   ndonjë analizë specifike, duke u mbështetur në analizat e tjera të lidhura)
 
-## 8. Përgjegjësia mjekësore
+## 9. Përgjegjësia mjekësore
 
 Ky program është për qëllime **edukativo-kërkimore**. Rezultatet NUK
 zëvendësojnë diagnozën apo këshillën e mjekut/nutricionistit. Çdo vendim
