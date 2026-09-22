@@ -6,3 +6,4 @@ reportlab>=4.0
 streamlit>=1.60
 plotly>=5.20
 pyarrow>=14.0
+supabase>=2.0

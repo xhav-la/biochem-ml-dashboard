@@ -16,6 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from data_service import get_full_dataset, get_models, ROOT
 from src import config
 import page_patient
+import page_new_patient
 import page_compare
 import page_export
 from auth import require_login
@@ -39,7 +40,7 @@ st.sidebar.title("🩺 Navigimi")
 page = st.sidebar.radio(
     "Zgjidh faqen",
     ["📊 Përmbledhje e Popullsisë", "🧑‍⚕️ Profili i Pacientit",
-     "🔍 Krahasime & Filtra", "📁 Eksport Batch (PDF)"],
+     "➕ Pacient i Ri", "🔍 Krahasime & Filtra", "📁 Eksport Batch (PDF)"],
     label_visibility="collapsed",
 )
 
@@ -182,11 +183,17 @@ elif page == "🧑‍⚕️ Profili i Pacientit":
 # ============================================================
 # FAQJA 3: KRAHASIME & FILTRA
 # ============================================================
+elif page == "➕ Pacient i Ri":
+    page_new_patient.render()
+
+# ============================================================
+# FAQJA 4: KRAHASIME & FILTRA
+# ============================================================
 elif page == "🔍 Krahasime & Filtra":
     page_compare.render()
 
 # ============================================================
-# FAQJA 4: EKSPORT BATCH
+# FAQJA 5: EKSPORT BATCH
 # ============================================================
 elif page == "📁 Eksport Batch (PDF)":
     page_export.render()

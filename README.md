@@ -88,13 +88,54 @@ Hapet automatikisht në shfletues, zakonisht në `http://localhost:8501`.
 2. **🧑‍⚕️ Profili i Pacientit** — kërko sipas ID, shiko biokiminë, gauge
    charts për të 4 parashikimet, planin ushqimor interaktiv (pie chart
    makronutrientësh), dhe **shkarko PDF-në e gjeneruar live** me një klik.
-3. **🔍 Krahasime & Filtra** — filtro popullsinë sipas disa dimensioneve
+3. **➕ Pacient i Ri** — **për nutricionistin/mjekun**: formular ku futen ME
+   DORË të dhënat REALE (jo sintetike) të një klienti të ri -- emër/ID,
+   moshë, gjini, nacionalitet, peshë, gjatësi, tension (opsional), dhe
+   analizat biokimike që i ka bërë (fushat që mungojnë lihen 0 → trajtohen
+   si "mungon", parashikimi bazohet te analizat e tjera). Rezultati: gauge
+   charts, plan ushqimor, PDF live -- njësoj si për pacientët nga dataseti.
+   Klientët e futur gjatë sesionit shfaqen në një tabelë historiku (me
+   eksport CSV/ZIP), por **RUHEN VETËM PËR SESIONIN AKTIV** -- shih
+   kufizimin më poshtë.
+4. **🔍 Krahasime & Filtra** — filtro popullsinë sipas disa dimensioneve
    njëherësh, krahaso grupe (bar charts, box plots), eksporto nën-grupin
    e filtruar si CSV.
-4. **📁 Eksport Batch** — gjenero shumë raporte PDF njëherësh (sipas ID-ve
+5. **📁 Eksport Batch** — gjenero shumë raporte PDF njëherësh (sipas ID-ve
    specifike, kampion i rastësishëm, ose sipas kategorisë së riskut) dhe
    shkarko si **ZIP**; ose eksporto statistikat e plota (30,000+ pacientë)
    si CSV.
+
+### 🗄️ Ruajtje e Përhershme e Klientëve (Supabase, FALAS)
+
+Faqja "➕ Pacient i Ri" mbështet ruajtje TË PËRHERSHME të klientëve përmes
+[Supabase](https://supabase.com) (PostgreSQL falas). Pa këtë konfigurim,
+klientët ruhen vetëm për sesionin aktiv (fshihen kur rifreskon faqen).
+
+#### Konfigurimi (bëhet 1 herë)
+
+1. Krijo llogari/projekt falas te [supabase.com](https://supabase.com)
+2. Te **SQL Editor**, ekzekuto skriptin `supabase_setup.sql` (është te rrënja
+   e këtij projekti) -- krijon tabelën `klientet`
+3. Te **Project Settings → API**, merr **Project URL** dhe **service_role key**
+4. Shtoji te `.streamlit/secrets.toml` (lokalisht) ose te **Secrets** në
+   Streamlit Cloud (online):
+   ```toml
+   supabase_url = "https://xxxxxxxxxxxx.supabase.co"
+   supabase_key = "eyJhbGciOi...."
+   ```
+5. Rinis aplikacionin -- faqja "Pacient i Ri" do të shfaqë "🟢 Baza e të
+   dhënave është lidhur"
+
+Pa këtë konfigurim, aplikacioni vazhdon të punojë normalisht (fallback
+automatik te ruajtja vetëm-për-sesion) -- asgjë nuk thyhet.
+
+#### Çka mundëson
+
+- Klientët ruhen PËRGJITHMONË (jo vetëm për sesionin)
+- Kërkim sipas emrit/ID në historikun e plotë
+- Rihapje e çdo klienti të vjetër + rigjenerim PDF pa rifutur analizat
+- Fshirje e klientëve individualë
+- I arritshëm nga çdo pajisje/sesion (jo vetëm kompjuteri ku u fut)
 
 ### Shënim teknik
 

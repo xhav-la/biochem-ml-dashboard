@@ -14,39 +14,7 @@ import plotly.graph_objects as go
 
 from src import config, diet_plan, generate_pdf, train_models
 from data_service import get_full_dataset, get_models
-
-GAUGE_COLOR = {
-    "Low": "#2e7d32", "Normal": "#2e7d32",
-    "Medium": "#f9a825", "Kufitar": "#f9a825",
-    "Kufitar (pre-hipertension)": "#f9a825", "Prediabet": "#f9a825",
-    "High": "#c62828", "I lartë": "#c62828", "Diabetik": "#c62828",
-}
-ORDER_3 = {"Low": 33, "Medium": 66, "High": 100,
-           "Normal": 20, "Kufitar": 60, "Kufitar (pre-hipertension)": 60,
-           "I lartë": 95, "Prediabet": 60, "Diabetik": 95}
-
-
-def _gauge(title, category, subtitle=""):
-    val = ORDER_3.get(category, 50)
-    color = GAUGE_COLOR.get(category, "#616161")
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=val,
-        number={"suffix": "", "font": {"size": 1}},  # amaguar numri, shfaqim tekst poshtë
-        title={"text": f"{title}<br><span style='font-size:0.7em'>{category}</span>"},
-        gauge={
-            "axis": {"range": [0, 100], "visible": False},
-            "bar": {"color": color},
-            "bgcolor": "#eeeeee",
-            "steps": [
-                {"range": [0, 40], "color": "#e8f5e9"},
-                {"range": [40, 75], "color": "#fff8e1"},
-                {"range": [75, 100], "color": "#ffebee"},
-            ],
-        },
-    ))
-    fig.update_layout(height=220, margin=dict(t=60, b=10, l=20, r=20))
-    return fig
+from viz_utils import gauge as _gauge
 
 
 def render():
@@ -121,8 +89,7 @@ def render():
                          use_container_width=True)
     with g2:
         dia = predictions["rreziku_diabetit"]
-        st.plotly_chart(_gauge("Rreziku i Diabetit", dia["kategoria"],
-                                subtitle=f"{dia['afersia_perqindje']}%"), use_container_width=True)
+        st.plotly_chart(_gauge("Rreziku i Diabetit", dia["kategoria"]), use_container_width=True)
         st.markdown(f"<p style='text-align:center'><b>Afërsia me diabetin: {dia['afersia_perqindje']}%</b></p>",
                     unsafe_allow_html=True)
     with g3:
