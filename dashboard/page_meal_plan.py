@@ -18,6 +18,10 @@ import streamlit as st
 
 import db
 from meal_plan_export import DAYS, MEALS, build_meal_plan_pdf, build_meal_plan_xlsx, initials
+from meal_plan_branded import build_branded_pdf, build_branded_xlsx
+
+DESIGNS = ["🌿 NLB · Pri Nutrition (me logo)", "📄 Klasik (si modeli origjinal)"]
+DEFAULT_SIGNATURE = "Doc.Dr. Nora Limani Bektashi"
 
 PLAN_TITLES = [f"PLANI {i}" for i in range(1, 13)]
 DEFAULT_NOTES = ""
@@ -32,7 +36,8 @@ def _init_state():
     defaults = {
         "mp_emri": "", "mp_pesha": 0.0, "mp_gjatesia": 0.0, "mp_klient_id": None,
         "mp_titulli": PLAN_TITLES[0], "mp_dates": (today, today + datetime.timedelta(days=14)),
-        "mp_shenime": DEFAULT_NOTES, "mp_lista": "", "mp_pergatitur": "",
+        "mp_shenime": DEFAULT_NOTES, "mp_lista": "", "mp_pergatitur": DEFAULT_SIGNATURE,
+        "mp_design": DESIGNS[0],
         "mp_loaded_id": None,
     }
     for k, v in defaults.items():
@@ -226,13 +231,18 @@ def render():
         st.warning("Plotëso emrin e klientit për të ruajtur/eksportuar planin.")
         return
 
+    st.radio("Dizajni i dokumentit", DESIGNS, key="mp_design", horizontal=True)
+    branded = st.session_state["mp_design"] == DESIGNS[0]
+    make_xlsx = build_branded_xlsx if branded else build_meal_plan_xlsx
+    make_pdf = build_branded_pdf if branded else build_meal_plan_pdf
+
     file_base = f"Plan_ushqimor_{plan['titulli'].split()[-1]}_{initials(plan['emri'])}"
     c1, c2, c3 = st.columns(3)
-    c1.download_button("⬇️ Shkarko Excel", data=build_meal_plan_xlsx(plan),
+    c1.download_button("⬇️ Shkarko Excel", data=make_xlsx(plan),
                        file_name=f"{file_base}.xlsx",
                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                        type="primary")
-    c2.download_button("⬇️ Shkarko PDF", data=build_meal_plan_pdf(plan),
+    c2.download_button("⬇️ Shkarko PDF", data=make_pdf(plan),
                        file_name=f"{file_base}.pdf", mime="application/pdf")
 
     if db.is_configured():

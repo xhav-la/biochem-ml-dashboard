@@ -104,6 +104,9 @@ Hapet automatikisht në shfletues, zakonisht në `http://localhost:8501`.
    Eksport në **Excel** (i njëjti format si modeli) dhe **PDF**. Planet ruhen në
    Supabase dhe mund të rihapen ose të kopjohen si plan i ri (p.sh. Plani 2 nga
    Plani 1). Kërkon tabelën `planet_ushqimore` (shih `supabase_setup.sql`).
+   Dy dizajne eksporti: **🌿 NLB · Pri Nutrition** (me logo, ngjyrat e markës,
+   fontet Gilda Display + Lato -- skedarët te `dashboard/assets/`, licencë OFL)
+   dhe **📄 Klasik** (si modeli origjinal Excel).
 5. **🔍 Krahasime & Filtra** — filtro popullsinë sipas disa dimensioneve
    njëherësh, krahaso grupe (bar charts, box plots), eksporto nën-grupin
    e filtruar si CSV.

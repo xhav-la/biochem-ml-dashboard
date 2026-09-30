@@ -37,6 +37,9 @@ RISK_COLOR_MAP = {
     "High": "#c62828", "I lartë": "#c62828", "Diabetik": "#c62828",
 }
 
+_logo = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "logo.png")
+if os.path.exists(_logo):
+    st.sidebar.image(_logo, width="stretch")
 st.sidebar.title("🩺 Navigimi")
 page = st.sidebar.radio(
     "Zgjidh faqen",
