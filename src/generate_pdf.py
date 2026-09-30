@@ -6,6 +6,7 @@ Krijon raportin PDF për një pacient: parametra biokimikë, demografi,
 antropometri, parashikimet e modeleve ML dhe planin ushqimor.
 """
 import datetime
+from xml.sax.saxutils import escape
 import pandas as pd
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
@@ -45,7 +46,7 @@ def _risk_row(label, category, extra=""):
 
 
 def build_patient_pdf(output_path, patient_id, biochem: dict, demo: dict,
-                       predictions: dict, diet: dict):
+                       predictions: dict, diet: dict, nutritionist_comment: str = None):
     doc = SimpleDocTemplate(output_path, pagesize=A4,
                              topMargin=1.5*cm, bottomMargin=1.5*cm,
                              leftMargin=1.8*cm, rightMargin=1.8*cm)
@@ -184,6 +185,28 @@ def build_patient_pdf(output_path, patient_id, biochem: dict, demo: dict,
         story.append(Paragraph("<b>Shënime shtesë:</b>", styles["Normal"]))
         for r in diet["shenime"]:
             story.append(Paragraph(f"• {r}", styles["Normal"]))
+
+    # ---------- Koment i Nutricionistit/Dietologut ----------
+    if nutritionist_comment and nutritionist_comment.strip():
+        story.append(Spacer(1, 0.4*cm))
+        story.append(Paragraph("5. Koment i Nutricionistit/Dietologut", styles["SectionHeader"]))
+        comment_box = Table(
+            [[Paragraph(escape(nutritionist_comment.strip()).replace("\n", "<br/>"), styles["Normal"])]],
+            hAlign="LEFT", colWidths=[15.5*cm],
+        )
+        comment_box.setStyle(TableStyle([
+            ("BOX", (0, 0), (-1, -1), 0.75, colors.HexColor("#1f4e79")),
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#f5f8fb")),
+            ("LEFTPADDING", (0, 0), (-1, -1), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ]))
+        story.append(comment_box)
+        story.append(Paragraph(
+            "<i>Ky koment është shtuar manualisht nga nutricionisti/dietologu që përgatiti "
+            "raportin -- pasqyron gjykim profesional, jo output të modelit ML.</i>",
+            styles["Small"]))
 
     story.append(Spacer(1, 0.6*cm))
     story.append(Paragraph(

@@ -49,3 +49,7 @@ create index if not exists idx_klientet_emri on klientet (emri);
 -- Row Level Security: e mbajme te thjeshte (akses vetem permes backend-it
 -- tone qe perdor "service_role" key, jo publik nga shfletuesi)
 alter table klientet enable row level security;
+
+-- Komenti i nutricionistit/dietologut (shtuar më vonë).
+-- Nëse tabela ekziston tashmë, mjafton të ekzekutosh VETËM këtë rresht:
+alter table klientet add column if not exists koment_nutricionisti text;

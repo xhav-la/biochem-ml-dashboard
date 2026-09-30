@@ -193,15 +193,19 @@ def render():
 
             # ruaj PËRHERSHËM te Supabase (nëse është konfiguruar)
             saved_permanently = False
+            db_id = None
             if db.is_configured():
                 record = _build_db_record(client_name, biochem, demo, predictions, diet)
                 saved_permanently = db.save_client(record)
+                if saved_permanently not in (True, False):
+                    db_id = saved_permanently
 
             # RUAJ rezultatin aktual në session_state, që të mbetet i dukshëm
             # edhe pas klikimeve të tjera (p.sh. butoni "Gjenero PDF")
             st.session_state["np_last_result"] = {
                 "client_name": client_name, "biochem": biochem, "demo": demo,
-                "predictions": predictions, "diet": diet, "saved_permanently": saved_permanently,
+                "predictions": predictions, "diet": diet, "saved_permanently": bool(saved_permanently),
+                "db_id": db_id,
             }
 
     # ---- Shfaq rezultatin e fundit (nëse ka), PAVARËSISHT pse ndodhi
@@ -215,7 +219,7 @@ def render():
             st.success(f"✅ Parashikimi u krye për **{last['client_name']}**!")
         st.markdown("---")
         _render_results(last["client_name"], last["biochem"], last["demo"],
-                         last["predictions"], last["diet"])
+                         last["predictions"], last["diet"], db_id=last.get("db_id"))
 
     _render_history(models, encoders, medians)
 
@@ -229,7 +233,7 @@ def _render_history(models, encoders, medians):
         _render_session_history(models, encoders, medians)
 
 
-def _render_results(client_name, biochem, demo, predictions, diet):
+def _render_results(client_name, biochem, demo, predictions, diet, db_id=None):
     st.subheader(f"📋 Rezultatet — {client_name}")
 
     missing_core = [k for k in ("GLIKEMIA", "HBA1C", "HOLESTEROL", "LDL", "HDL", "TRIGLICERIDI")
@@ -269,10 +273,25 @@ def _render_results(client_name, biochem, demo, predictions, diet):
         for r in diet["kufizime"]:
             st.markdown(f"- {r}")
 
+    # ---- Komenti i nutricionistit/dietologut ----
+    st.markdown("#### 🩺 Komenti i Nutricionistit/Dietologut")
+    st.caption("Plani më lart është i gjeneruar automatikisht. Shto këtu vlerësimin tënd profesional, "
+               "rregullimet e planit, ushqimet specifike, alergji/preferenca, orarin e kontrollit, etj. "
+               "Ky koment shfaqet si seksion i veçantë në PDF.")
+    comment = st.text_area("Komenti", key=f"comment_{client_name}",
+                           height=160, label_visibility="collapsed",
+                           placeholder="p.sh. Rekomandoj reduktim gradual të bukës së bardhë; "
+                                       "3 vakte kryesore + 2 të lehta; kontroll pas 4 javësh me analiza të reja...")
+    if db_id is not None:
+        if st.button("💾 Ruaj komentin në bazën e të dhënave", key=f"save_comment_{client_name}"):
+            if db.update_comment(db_id, comment):
+                st.success("Komenti u ruajt.")
+
     if st.button(f"📄 Gjenero PDF për {client_name}", key=f"pdf_btn_{client_name}_{id(predictions)}"):
         with st.spinner("Duke gjeneruar PDF-në..."):
             tmp_path = os.path.join(tempfile.gettempdir(), f"raport_{_safe_filename(client_name)}.pdf")
-            generate_pdf.build_patient_pdf(tmp_path, client_name, biochem, demo, predictions, diet)
+            generate_pdf.build_patient_pdf(tmp_path, client_name, biochem, demo, predictions, diet,
+                                           nutritionist_comment=comment)
             with open(tmp_path, "rb") as f:
                 pdf_bytes = f.read()
         st.download_button("⬇️ Shkarko PDF", data=pdf_bytes,
@@ -319,7 +338,8 @@ def _render_session_history(models, encoders, medians):
                     tmp_path = os.path.join(tempfile.gettempdir(),
                                              f"raport_{_safe_filename(h['emri'])}.pdf")
                     generate_pdf.build_patient_pdf(tmp_path, h["emri"], h["biochem"], h["demo"],
-                                                    h["predictions"], h["diet"])
+                                                    h["predictions"], h["diet"],
+                                                    nutritionist_comment=st.session_state.get(f"comment_{h['emri']}"))
                     with open(tmp_path, "rb") as f:
                         zf.writestr(f"raport_{_safe_filename(h['emri'])}.pdf", f.read())
             st.download_button("⬇️ Shkarko ZIP", data=zip_buffer.getvalue(),
@@ -371,7 +391,8 @@ def _render_db_history():
     fdf["Lipidet"] = fdf["predictions"].apply(lambda p: _safe_get(p, "profili_lipidik"))
 
     show_cols = ["id", "emri", "krijuar_me", "mosha", "gjinia", "bmi",
-                 "Sindroma Metabolike", "Diabeti", "Hipertensioni", "Lipidet"]
+                 "Sindroma Metabolike", "Diabeti", "Hipertensioni", "Lipidet",
+                 "koment_nutricionisti"]
     show_cols = [c for c in show_cols if c in fdf.columns]
     st.dataframe(fdf[show_cols], use_container_width=True, hide_index=True, height=300)
 

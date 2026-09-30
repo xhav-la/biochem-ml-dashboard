@@ -138,11 +138,19 @@ def render():
 
     st.markdown("---")
 
+    # ---- Komenti i nutricionistit/dietologut ----
+    st.subheader("🩺 Komenti i Nutricionistit/Dietologut")
+    st.caption("Plani më lart është i gjeneruar automatikisht. Shto vlerësimin tënd profesional -- "
+               "shfaqet si seksion i veçantë në PDF.")
+    comment = st.text_area("Komenti", key=f"comment_patient_{patient_id}", height=160,
+                           label_visibility="collapsed")
+
     # ---- Shkarko PDF LIVE ----
     if st.button("📄 Gjenero & Shkarko Raportin PDF", type="primary"):
         with st.spinner("Duke gjeneruar PDF-në..."):
             tmp_path = os.path.join(tempfile.gettempdir(), f"raport_pacienti_{patient_id}.pdf")
-            generate_pdf.build_patient_pdf(tmp_path, patient_id, biochem, demo, predictions, diet)
+            generate_pdf.build_patient_pdf(tmp_path, patient_id, biochem, demo, predictions, diet,
+                                           nutritionist_comment=comment)
             with open(tmp_path, "rb") as f:
                 pdf_bytes = f.read()
         st.success("Raporti u gjenerua!")

@@ -63,10 +63,32 @@ def save_client(record: dict):
     if client is None:
         return False
     try:
-        client.table(TABLE).insert(record).execute()
+        res = client.table(TABLE).insert(record).execute()
+        # kthe ID-në e rreshtit të ri (duhet për të shtuar komentin më vonë)
+        if res.data and "id" in res.data[0]:
+            return res.data[0]["id"]
         return True
     except Exception as e:
         st.warning(f"Ruajtja në bazën e të dhënave dështoi: {e}")
+        return False
+
+
+def update_comment(client_id, comment: str) -> bool:
+    """Ruan/përditëson komentin e nutricionistit për një klient ekzistues."""
+    client = _get_client()
+    if client is None or client_id in (None, True, False):
+        return False
+    try:
+        client.table(TABLE).update({"koment_nutricionisti": comment}).eq("id", client_id).execute()
+        return True
+    except Exception as e:
+        msg = str(e)
+        if "koment_nutricionisti" in msg:
+            st.warning("Kolona `koment_nutricionisti` nuk ekziston ende në Supabase. "
+                       "Ekzekuto te SQL Editor: `alter table klientet add column if not exists "
+                       "koment_nutricionisti text;`")
+        else:
+            st.warning(f"Ruajtja e komentit dështoi: {e}")
         return False
 
 
