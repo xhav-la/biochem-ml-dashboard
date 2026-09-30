@@ -83,30 +83,36 @@ def render():
     if "new_patients_history" not in st.session_state:
         st.session_state["new_patients_history"] = []  # listë dict-esh, për këtë sesion
 
+    # ---- Identifikimi, Demografia & Antropometria JASHTË formularit ----
+    # (kështu BMI llogaritet dhe shfaqet LIVE me çdo ndryshim -- brenda
+    # st.form, Streamlit NUK rifreskon derisa të klikohet submit)
+    st.subheader("1. Identifikimi & Demografia")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        client_name = st.text_input("Emri/ID i Klientit *", placeholder="p.sh. A.K. ose #001",
+                                     key="np_client_name")
+    with c2:
+        mosha = st.number_input("Mosha *", min_value=1, max_value=120, value=35, step=1, key="np_mosha")
+    with c3:
+        gjinia = st.selectbox("Gjinia *", ["M", "F"], key="np_gjinia")
+    with c4:
+        nacionaliteti = st.selectbox("Nacionaliteti", NATIONALITIES, key="np_nacionaliteti")
+
+    st.subheader("2. Antropometria")
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        pesha = st.number_input("Pesha (kg) *", min_value=20.0, max_value=300.0, value=70.0, step=0.1,
+                                 key="np_pesha")
+    with c2:
+        gjatesia = st.number_input("Gjatësia (cm) *", min_value=100.0, max_value=230.0, value=170.0, step=0.5,
+                                    key="np_gjatesia")
+    bmi = round(pesha / ((gjatesia / 100) ** 2), 1)
+    with c3:
+        st.metric("BMI (llogaritur)", bmi)
+    with c4:
+        st.write("")
+
     with st.form("new_patient_form", clear_on_submit=False):
-        st.subheader("1. Identifikimi & Demografia")
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            client_name = st.text_input("Emri/ID i Klientit *", placeholder="p.sh. A.K. ose #001")
-        with c2:
-            mosha = st.number_input("Mosha *", min_value=1, max_value=120, value=35, step=1)
-        with c3:
-            gjinia = st.selectbox("Gjinia *", ["M", "F"])
-        with c4:
-            nacionaliteti = st.selectbox("Nacionaliteti", NATIONALITIES)
-
-        st.subheader("2. Antropometria")
-        c1, c2, c3, c4 = st.columns(4)
-        with c1:
-            pesha = st.number_input("Pesha (kg) *", min_value=20.0, max_value=300.0, value=70.0, step=0.1)
-        with c2:
-            gjatesia = st.number_input("Gjatësia (cm) *", min_value=100.0, max_value=230.0, value=170.0, step=0.5)
-        bmi = round(pesha / ((gjatesia / 100) ** 2), 1)
-        with c3:
-            st.metric("BMI (llogaritur)", bmi)
-        with c4:
-            st.write("")
-
         st.subheader("3. Tensioni (nëse është matur)")
         c1, c2 = st.columns(2)
         with c1:
@@ -149,55 +155,68 @@ def render():
 
         submitted = st.form_submit_button("🔮 Bëj Parashikimin & Gjenero Planin", type="primary")
 
-    if not submitted:
-        _render_history(models, encoders, medians)
-        return
-
-    if not client_name.strip():
-        st.error("Ju lutem fut Emrin/ID e klientit.")
-        _render_history(models, encoders, medians)
-        return
-
-    # ---- Ndërto input-in për modelet ----
-    biochem = {
-        "GLIKEMIA": _number_or_none(glikemia), "HBA1C": _number_or_none(hba1c),
-        "HOLESTEROL": _number_or_none(holesterol), "LDL": _number_or_none(ldl),
-        "HDL": _number_or_none(hdl), "TRIGLICERIDI": _number_or_none(trigliceridi),
-        "HEMOGLOBIN": _number_or_none(hemoglobina), "CRP": _number_or_none(crp),
-        "HEMATOKRIT": _number_or_none(hematokrit), "NA": _number_or_none(na),
-        "TROMBOCITI": _number_or_none(trombocit), "MG": _number_or_none(mg),
-        "ALBUMINI": _number_or_none(albumin), "FE": _number_or_none(fe),
-        "TOTALNI_PROTEINI": _number_or_none(totalni_prot), "TSH": _number_or_none(tsh),
-        "FT4": _number_or_none(ft4),
-    }
-    demo = {
-        "MOSHA": int(mosha), "GJINIA": gjinia, "NACIONALITETI": nacionaliteti,
-        "PESHA_KG": pesha, "GJATESIA_CM": gjatesia, "BMI": bmi,
-        "TENSION_SISTOLIK": _number_or_none(float(tension_sis)),
-        "TENSION_DIASTOLIK": _number_or_none(float(tension_dia)),
-    }
-    patient_input = {**biochem, "MOSHA": demo["MOSHA"], "GJINIA": demo["GJINIA"], "BMI": demo["BMI"]}
-
-    predictions = pp.predict_patient(patient_input, models, encoders, medians)
-    diet = diet_plan.build_diet_plan(demo, predictions)
-
-    # ruaj në historikun e sesionit (fallback lokal, gjithmonë)
-    st.session_state["new_patients_history"].append({
-        "emri": client_name, "koha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "biochem": biochem, "demo": demo, "predictions": predictions, "diet": diet,
-    })
-
-    # ruaj PËRHERSHËM te Supabase (nëse është konfiguruar)
-    if db.is_configured():
-        record = _build_db_record(client_name, biochem, demo, predictions, diet)
-        if db.save_client(record):
-            st.success(f"✅ Parashikimi u krye dhe **{client_name}** u ruajt përhershëm në bazën e të dhënave!")
+    # ---- Përpuno submitimin: llogarit dhe RUAJ në session_state ----
+    # (E RËNDËSISHME: çdo klikim tjetër buton -- p.sh. "Gjenero PDF" --
+    # shkakton rifreskim të faqes me submitted=False; nëse rezultati s'ruhet
+    # në session_state, ai zhduket menjëherë dhe butoni PDF "nuk punon".)
+    if submitted:
+        if not client_name.strip():
+            st.error("Ju lutem fut Emrin/ID e klientit.")
         else:
-            st.success(f"✅ Parashikimi u krye për **{client_name}**!")
-    else:
-        st.success(f"✅ Parashikimi u krye për **{client_name}**!")
-    st.markdown("---")
-    _render_results(client_name, biochem, demo, predictions, diet)
+            biochem = {
+                "GLIKEMIA": _number_or_none(glikemia), "HBA1C": _number_or_none(hba1c),
+                "HOLESTEROL": _number_or_none(holesterol), "LDL": _number_or_none(ldl),
+                "HDL": _number_or_none(hdl), "TRIGLICERIDI": _number_or_none(trigliceridi),
+                "HEMOGLOBIN": _number_or_none(hemoglobina), "CRP": _number_or_none(crp),
+                "HEMATOKRIT": _number_or_none(hematokrit), "NA": _number_or_none(na),
+                "TROMBOCITI": _number_or_none(trombocit), "MG": _number_or_none(mg),
+                "ALBUMINI": _number_or_none(albumin), "FE": _number_or_none(fe),
+                "TOTALNI_PROTEINI": _number_or_none(totalni_prot), "TSH": _number_or_none(tsh),
+                "FT4": _number_or_none(ft4),
+            }
+            demo = {
+                "MOSHA": int(mosha), "GJINIA": gjinia, "NACIONALITETI": nacionaliteti,
+                "PESHA_KG": pesha, "GJATESIA_CM": gjatesia, "BMI": bmi,
+                "TENSION_SISTOLIK": _number_or_none(float(tension_sis)),
+                "TENSION_DIASTOLIK": _number_or_none(float(tension_dia)),
+            }
+            patient_input = {**biochem, "MOSHA": demo["MOSHA"], "GJINIA": demo["GJINIA"], "BMI": demo["BMI"]}
+
+            predictions = pp.predict_patient(patient_input, models, encoders, medians)
+            diet = diet_plan.build_diet_plan(demo, predictions)
+
+            # ruaj në historikun e sesionit (fallback lokal, gjithmonë)
+            st.session_state["new_patients_history"].append({
+                "emri": client_name, "koha": datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+                "biochem": biochem, "demo": demo, "predictions": predictions, "diet": diet,
+            })
+
+            # ruaj PËRHERSHËM te Supabase (nëse është konfiguruar)
+            saved_permanently = False
+            if db.is_configured():
+                record = _build_db_record(client_name, biochem, demo, predictions, diet)
+                saved_permanently = db.save_client(record)
+
+            # RUAJ rezultatin aktual në session_state, që të mbetet i dukshëm
+            # edhe pas klikimeve të tjera (p.sh. butoni "Gjenero PDF")
+            st.session_state["np_last_result"] = {
+                "client_name": client_name, "biochem": biochem, "demo": demo,
+                "predictions": predictions, "diet": diet, "saved_permanently": saved_permanently,
+            }
+
+    # ---- Shfaq rezultatin e fundit (nëse ka), PAVARËSISHT pse ndodhi
+    # ky rifreskim -- kështu butoni PDF/Shkarko mbeten funksionalë ----
+    last = st.session_state.get("np_last_result")
+    if last:
+        if last["saved_permanently"]:
+            st.success(f"✅ Parashikimi u krye dhe **{last['client_name']}** u ruajt përhershëm "
+                       f"në bazën e të dhënave!")
+        else:
+            st.success(f"✅ Parashikimi u krye për **{last['client_name']}**!")
+        st.markdown("---")
+        _render_results(last["client_name"], last["biochem"], last["demo"],
+                         last["predictions"], last["diet"])
+
     _render_history(models, encoders, medians)
 
 
@@ -216,10 +235,8 @@ def _render_results(client_name, biochem, demo, predictions, diet):
     missing_core = [k for k in ("GLIKEMIA", "HBA1C", "HOLESTEROL", "LDL", "HDL", "TRIGLICERIDI")
                     if biochem.get(k) is None]
     if missing_core:
-        st.info(f"ℹ️ Analiza që mungojnë (u zëvendësuan me median statistikore për parashikim): "
-                f"{', '.join(missing_core)}")
-    if demo.get("TENSION_SISTOLIK") is None:
-        st.info("ℹ️ Tensioni nuk u fut -- parashikimi i hipertensionit bazohet vetëm në median statistikore.")
+        st.info(f"ℹ️ Analiza që mungojnë (trajtohen si mungesë reale nga modeli, JO si vlerë e "
+                f"hamendësuar): {', '.join(missing_core)}")
 
     g1, g2, g3, g4 = st.columns(4)
     with g1:

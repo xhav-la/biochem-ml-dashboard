@@ -152,8 +152,8 @@ def build_patient_pdf(output_path, patient_id, biochem: dict, demo: dict,
     if missing_core:
         story.append(Paragraph(
             f"<i>Shënim: {len(missing_core)} analiza kyçe mungonin te ky pacient "
-            f"({', '.join(missing_core)}) dhe u zëvendësuan me vlerën mediane statistikore "
-            f"gjatë parashikimit -- rezultati përkatës mund të jetë më pak i saktë.</i>",
+            f"({', '.join(missing_core)}) -- trajtohen si mungesë reale nga modeli (asnjë "
+            f"vlerë statistikore nuk u hamendësua në vend të tyre).</i>",
             styles["Small"]))
     story.append(Spacer(1, 0.4*cm))
 

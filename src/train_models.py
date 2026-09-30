@@ -12,11 +12,20 @@ Modele:
                               + probabilitet (%) i përdorur si "afërsia" e riskut
   3. Hipertensioni         -> klasifikim (Normal / Kufitar / I lartë)
   4. Profili Lipidik       -> klasifikim (Normal / Kufitar / I lartë)
+
+SHËNIM I RËNDËSISHËM mbi vlerat mungesë: modelet përdorin
+`HistGradientBoostingClassifier`, i cili trajton NaN (analiza që
+mungojnë) NATYRSHËM -- MOS zëvendësohen me median apo ndonjë vlerë
+tjetër statistikore. Modeli mëson vetë, gjatë trajnimit, si të vendosë
+kur një analizë e caktuar mungon, bazuar në modelet reale të mungesës
+në dataset. Kjo është ndryshe nga qasja e mëparshme (RandomForest +
+imputim median), e ndryshuar me kërkesë të qartë: analizat që mungojnë
+duhet të MBETEN mungesë, jo të "hamendësohen".
 """
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.preprocessing import LabelEncoder
@@ -44,10 +53,12 @@ def build_dataset():
 
 
 def _prepare_features(df, gender_encoder=None, fit=False):
-    X = df[FEATURE_COLS].copy()
-    # imputim i thjeshtë me median (ruajmë mediánat për inferencë konsistente)
-    for c in FEATURE_COLS:
-        X[c] = X[c].fillna(X[c].median())
+    """
+    KEQ imputim -- vlerat mungesë (NaN) MBETEN NaN, i kalohen modelit siç
+    janë. HistGradientBoostingClassifier i trajton NaN vetë (pa median,
+    pa asnjë vlerë "e hamendësuar").
+    """
+    X = df[FEATURE_COLS].copy()  # NaN mbeten NaN -- QËLLIMISHT, mos i prek
 
     if fit:
         gender_encoder = LabelEncoder()
@@ -73,9 +84,10 @@ def _train_one(df, label_col, exclude_labels, model_path, encoders, name):
         X, y, test_size=0.2, random_state=config.RANDOM_SEED, stratify=y
     )
 
-    clf = RandomForestClassifier(
-        n_estimators=200, max_depth=12, min_samples_leaf=5,
-        class_weight="balanced", random_state=config.RANDOM_SEED, n_jobs=-1,
+    clf = HistGradientBoostingClassifier(
+        max_iter=300, max_depth=8, learning_rate=0.08,
+        class_weight="balanced", random_state=config.RANDOM_SEED,
+        early_stopping=True, validation_fraction=0.15, n_iter_no_change=15,
     )
     clf.fit(X_train, y_train)
 
@@ -86,11 +98,6 @@ def _train_one(df, label_col, exclude_labels, model_path, encoders, name):
 
     joblib.dump(clf, model_path)
     print(f"Modeli u ruajt: {model_path}")
-
-    # feature importance (top 8) - e dobishme për transparencë klinike
-    importances = pd.Series(clf.feature_importances_, index=X.columns)
-    print("Tiparet më me ndikim:")
-    print(importances.sort_values(ascending=False).head(8).round(3))
 
     return clf
 
@@ -131,11 +138,8 @@ def train_all():
 
     joblib.dump(encoders, config.PATHS["encoders"])
     joblib.dump(FEATURE_COLS, config._p("models", "feature_cols.pkl"))
-    # ruaj mediánat për imputim konsistent gjatë inferencës
-    medians = df[FEATURE_COLS].median()
-    joblib.dump(medians, config._p("models", "feature_medians.pkl"))
 
-    print("\n=== Trajnimi përfundoi për të 4 modelet. ===")
+    print("\n=== Trajnimi përfundoi për të 4 modelet (pa imputim median -- NaN trajtohen nga vetë modeli). ===")
 
 
 if __name__ == "__main__":

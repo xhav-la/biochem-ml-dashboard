@@ -22,17 +22,16 @@ def load_models():
         "lipid": joblib.load(config.PATHS["model_htn_lipid"].replace(".pkl", "_lipid.pkl")),
     }
     encoders = joblib.load(config.PATHS["encoders"])
-    medians = joblib.load(config._p("models", "feature_medians.pkl"))
-    return models, encoders, medians
+    return models, encoders, None  # "medians" mbahet vetëm për pajtueshmëri të firmës së funksionit
 
 
-def _build_feature_vector(patient: dict, encoders, medians, gender_key):
-    row = {}
-    for c in FEATURE_COLS:
-        val = patient.get(c, np.nan)
-        if val is None or (isinstance(val, float) and np.isnan(val)):
-            val = medians[c]
-        row[c] = val
+def _build_feature_vector(patient: dict, encoders, gender_key):
+    """
+    Ndërton vektorin e tipareve PA imputim -- analiza që mungon MBETET
+    NaN dhe i kalohet modelit siç është. HistGradientBoostingClassifier
+    e trajton NaN vetë, natyrshëm (asnjë vlerë "e hamendësuar").
+    """
+    row = {c: patient.get(c, np.nan) for c in FEATURE_COLS}
     X = pd.DataFrame([row])[FEATURE_COLS]
     gender_enc = encoders[gender_key]
     X["GJINIA_ENC"] = gender_enc.transform([patient.get("GJINIA", "M")])
@@ -42,8 +41,11 @@ def _build_feature_vector(patient: dict, encoders, medians, gender_key):
 def predict_patient(patient: dict, models=None, encoders=None, medians=None):
     """
     `patient` duhet të ketë çelësat: kolonat biokimike të mundshme nga
-    FEATURE_COLS (mund të mungojnë disa -> imputohen automatikisht),
-    plus MOSHA, GJINIA ('M'/'F'), BMI.
+    FEATURE_COLS (mund të mungojnë disa -> MBETEN mungesë, NUK zëvendësohen
+    me asnjë vlerë statistikore), plus MOSHA, GJINIA ('M'/'F'), BMI.
+
+    `medians` mbahet si parametër vetëm për pajtueshmëri prapa me thirrjet
+    ekzistuese -- NUK përdoret më.
 
     Kthen dict me rezultate për të 4 parashikimet.
     """
@@ -53,7 +55,7 @@ def predict_patient(patient: dict, models=None, encoders=None, medians=None):
     results = {}
 
     # 1. Sindroma Metabolike
-    X = _build_feature_vector(patient, encoders, medians, "gender_metsyn")
+    X = _build_feature_vector(patient, encoders, "gender_metsyn")
     clf = models["metsyn"]
     proba = clf.predict_proba(X)[0]
     labels = encoders["label_metsyn"].classes_
@@ -64,7 +66,7 @@ def predict_patient(patient: dict, models=None, encoders=None, medians=None):
     }
 
     # 2. Rreziku i Diabetit
-    X = _build_feature_vector(patient, encoders, medians, "gender_diabetes")
+    X = _build_feature_vector(patient, encoders, "gender_diabetes")
     clf = models["diabetes"]
     proba = clf.predict_proba(X)[0]
     labels = encoders["label_diabetes"].classes_
@@ -79,7 +81,7 @@ def predict_patient(patient: dict, models=None, encoders=None, medians=None):
     }
 
     # 3. Hipertensioni
-    X = _build_feature_vector(patient, encoders, medians, "gender_hipertension")
+    X = _build_feature_vector(patient, encoders, "gender_hipertension")
     clf = models["htn"]
     proba = clf.predict_proba(X)[0]
     labels = encoders["label_hipertension"].classes_
@@ -90,7 +92,7 @@ def predict_patient(patient: dict, models=None, encoders=None, medians=None):
     }
 
     # 4. Profili Lipidik
-    X = _build_feature_vector(patient, encoders, medians, "gender_lipid")
+    X = _build_feature_vector(patient, encoders, "gender_lipid")
     clf = models["lipid"]
     proba = clf.predict_proba(X)[0]
     labels = encoders["label_lipid"].classes_
@@ -113,9 +115,7 @@ def batch_predict_all(labeled_df, models=None, encoders=None, medians=None):
         models, encoders, medians = load_models()
 
     df = labeled_df.copy()
-    X = df[FEATURE_COLS].copy()
-    for c in FEATURE_COLS:
-        X[c] = X[c].fillna(medians[c])
+    X = df[FEATURE_COLS].copy()  # NaN mbeten NaN -- modeli i trajton vetë
 
     targets = [
         ("metsyn", "metsyn", "SIND_METABOLIKE_PARASHIKIM"),
