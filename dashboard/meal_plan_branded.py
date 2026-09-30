@@ -20,7 +20,7 @@ from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from meal_plan_export import DAYS, MEALS, _est_lines, fmt_date, fmt_num
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-LOGO = os.path.join(ASSETS, "logo.png")
+LOGO = os.path.join(ASSETS, "logo_nlb.png")  # vetëm monogrami NLB + "PRI NUTRITION"
 FONTS = os.path.join(ASSETS, "fonts")
 
 # ---- Paleta e markës (nga logo) ----
@@ -71,8 +71,9 @@ def build_branded_xlsx(plan) -> bytes:
     ws.row_dimensions[3].height = 8
     if os.path.exists(LOGO):
         img = XLImage(LOGO)
-        img.height = 72
-        img.width = int(72 * img.image.width / img.image.height) if hasattr(img, "image") else 310
+        ratio = img.width / img.height          # proporcionet origjinale të imazhit
+        img.height = 84
+        img.width = int(84 * ratio)
         ws.add_image(img, "A1")
 
     ws.merge_cells("F1:I1")
@@ -288,7 +289,7 @@ def build_branded_pdf(plan) -> bytes:
 
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=(page_w, page_h), leftMargin=margin, rightMargin=margin,
-                            topMargin=0.6 * cm, bottomMargin=1.0 * cm,
+                            topMargin=0.5 * cm, bottomMargin=1.0 * cm,
                             title=f"Plan ushqimor - {plan['emri']}", author=plan.get("pergatitur_nga") or "")
     story = []
 
@@ -296,7 +297,7 @@ def build_branded_pdf(plan) -> bytes:
     if os.path.exists(LOGO):
         from PIL import Image as PILImage
         w, h = PILImage.open(LOGO).size
-        logo_h = 1.35 * cm
+        logo_h = 1.6 * cm
         logo = Image(LOGO, width=logo_h * w / h, height=logo_h)
     else:
         logo = P("Nora Limani Bektashi", st("lf", fontName=SERIF, fontSize=16, textColor=C(OLIVE)))
@@ -304,10 +305,11 @@ def build_branded_pdf(plan) -> bytes:
     head = Table([[logo, right]], colWidths=[avail * 0.5, avail * 0.5])
     head.setStyle(TableStyle([
         ("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+        ("TOPPADDING", (0, 0), (-1, -1), 0),
         ("LINEBELOW", (0, 0), (-1, -1), 1.2, C(OLIVE)),
     ]))
-    story += [head, Spacer(1, 0.25 * cm)]
+    story += [head, Spacer(1, 0.15 * cm)]
 
     # ---- Klienti ----
     info = Table([[P("KLIENTI", lab_st), P("PESHA", lab_st), P("GJATËSIA", lab_st), P("BMI", lab_st)],
