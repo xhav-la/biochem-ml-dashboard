@@ -114,3 +114,58 @@ def delete_client(client_id):
         return True
     except Exception:
         return False
+
+
+# ================================================================
+# PLANET USHQIMORE (faqja "📝 Plani Ushqimor (Dietologu)")
+# ================================================================
+PLANS_TABLE = "planet_ushqimore"
+_PLANS_SQL_HINT = ("Tabela `planet_ushqimore` nuk ekziston ende në Supabase. Ekzekuto te SQL Editor "
+                   "pjesën 'PLANET USHQIMORE' nga skedari `supabase_setup.sql`.")
+
+
+def _plans_error(e, action):
+    if PLANS_TABLE in str(e) or "PGRST205" in str(e):
+        st.warning(_PLANS_SQL_HINT)
+    else:
+        st.warning(f"{action} dështoi: {e}")
+
+
+def save_meal_plan(record: dict, plan_id=None):
+    """Ruan planin (insert, ose update nëse jepet plan_id). Kthen ID-në ose None."""
+    client = _get_client()
+    if client is None:
+        return None
+    try:
+        if plan_id:
+            client.table(PLANS_TABLE).update(record).eq("id", plan_id).execute()
+            return plan_id
+        res = client.table(PLANS_TABLE).insert(record).execute()
+        return res.data[0]["id"] if res.data else None
+    except Exception as e:
+        _plans_error(e, "Ruajtja e planit")
+        return None
+
+
+def load_meal_plans() -> pd.DataFrame:
+    client = _get_client()
+    if client is None:
+        return pd.DataFrame()
+    try:
+        res = client.table(PLANS_TABLE).select("*").order("krijuar_me", desc=True).execute()
+        return pd.DataFrame(res.data)
+    except Exception as e:
+        _plans_error(e, "Leximi i planeve")
+        return pd.DataFrame()
+
+
+def delete_meal_plan(plan_id) -> bool:
+    client = _get_client()
+    if client is None:
+        return False
+    try:
+        client.table(PLANS_TABLE).delete().eq("id", plan_id).execute()
+        return True
+    except Exception as e:
+        _plans_error(e, "Fshirja e planit")
+        return False

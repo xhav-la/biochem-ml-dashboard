@@ -17,6 +17,7 @@ from data_service import get_full_dataset, get_models, ROOT
 from src import config
 import page_patient
 import page_new_patient
+import page_meal_plan
 import page_compare
 import page_export
 from auth import require_login
@@ -40,7 +41,8 @@ st.sidebar.title("🩺 Navigimi")
 page = st.sidebar.radio(
     "Zgjidh faqen",
     ["📊 Përmbledhje e Popullsisë", "🧑‍⚕️ Profili i Pacientit",
-     "➕ Pacient i Ri", "🔍 Krahasime & Filtra", "📁 Eksport Batch (PDF)"],
+     "➕ Pacient i Ri", "📝 Plani Ushqimor (Dietologu)",
+     "🔍 Krahasime & Filtra", "📁 Eksport Batch (PDF)"],
     label_visibility="collapsed",
 )
 
@@ -185,6 +187,9 @@ elif page == "🧑‍⚕️ Profili i Pacientit":
 # ============================================================
 elif page == "➕ Pacient i Ri":
     page_new_patient.render()
+
+elif page == "📝 Plani Ushqimor (Dietologu)":
+    page_meal_plan.render()
 
 # ============================================================
 # FAQJA 4: KRAHASIME & FILTRA

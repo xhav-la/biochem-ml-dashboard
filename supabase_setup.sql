@@ -53,3 +53,19 @@ alter table klientet enable row level security;
 -- Komenti i nutricionistit/dietologut (shtuar më vonë).
 -- Nëse tabela ekziston tashmë, mjafton të ekzekutosh VETËM këtë rresht:
 alter table klientet add column if not exists koment_nutricionisti text;
+
+-- ============================================================
+-- PLANET USHQIMORE (faqja "Plani Ushqimor (Dietologu)")
+-- ============================================================
+create table if not exists planet_ushqimore (
+    id bigint generated always as identity primary key,
+    krijuar_me timestamptz not null default now(),
+    klient_id bigint references klientet(id) on delete set null,
+    emri text not null,
+    titulli text not null,
+    data_fillimit date,
+    data_mbarimit date,
+    permbajtja jsonb not null
+);
+create index if not exists idx_planet_emri on planet_ushqimore (emri);
+alter table planet_ushqimore enable row level security;

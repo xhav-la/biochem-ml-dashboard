@@ -97,7 +97,14 @@ Hapet automatikisht në shfletues, zakonisht në `http://localhost:8501`.
    Klientët e futur gjatë sesionit shfaqen në një tabelë historiku (me
    eksport CSV/ZIP), por **RUHEN VETËM PËR SESIONIN AKTIV** -- shih
    kufizimin më poshtë.
-4. **🔍 Krahasime & Filtra** — filtro popullsinë sipas disa dimensioneve
+4. **📝 Plani Ushqimor (Dietologu)** — dietologia harton planin javor (7 ditë × 6
+   vakte) sipas modelit të saj në Excel. Zgjedh klientin → emri, pesha, gjatësia
+   mbushen automatikisht; zgjedh titullin (Plani 1, 2, ...) dhe periudhën (datat);
+   oraret e vakteve ndryshohen; menuja e një dite mund të kopjohet te ditët e tjera.
+   Eksport në **Excel** (i njëjti format si modeli) dhe **PDF**. Planet ruhen në
+   Supabase dhe mund të rihapen ose të kopjohen si plan i ri (p.sh. Plani 2 nga
+   Plani 1). Kërkon tabelën `planet_ushqimore` (shih `supabase_setup.sql`).
+5. **🔍 Krahasime & Filtra** — filtro popullsinë sipas disa dimensioneve
    njëherësh, krahaso grupe (bar charts, box plots), eksporto nën-grupin
    e filtruar si CSV.
 5. **📁 Eksport Batch** — gjenero shumë raporte PDF njëherësh (sipas ID-ve
